@@ -17,7 +17,7 @@ def init_sam_model():
 
     sam_predictor = SamPredictor(sam)
 
-    mask_utils:MaskUtils = MaskUtils(sam_predictor)
+    mask_utils:MaskUtils = MaskUtils(sam, sam_predictor)
     return mask_utils
 
 def process_image(image_path, mask_utils:MaskUtils, input_point, input_label, save_path):

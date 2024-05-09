@@ -4,11 +4,14 @@ from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamP
 import os
 import cv2
 from PIL import Image
+from segment_anything.modeling import Sam
+
 import modules.utils as utils
 
 class MaskUtils:
-    def __init__(self, predictor):
+    def __init__(self, sam_model: Sam, predictor):
         self.sam_predictor:SamPredictor = predictor
+        self.sam_model = sam_model
 
     def show_mask(self, mask, ax, random_color=False):
         if random_color:
@@ -37,6 +40,20 @@ class MaskUtils:
             multimask_output=True,
         )
         return masks, scores, logits
+
+
+    def get_auto_masks(self, image):
+        mask_generator = SamAutomaticMaskGenerator(self.sam_model)
+        masks = mask_generator.generate(image)
+        # 处理sam返回的图层信息
+        mask_list = trans_anns(masks)
+
+        mask_obj = {
+            "height": image.shape[0],
+            "width": image.shape[1],
+            "mask_list": mask_list
+        }
+        return mask_obj
 
     def get_color(self, label):
         if label == 1:
@@ -146,3 +163,33 @@ class MaskUtils:
             cv2.imshow("Blended Image", cv2.cvtColor(blended_image, cv2.COLOR_RGB2BGR))
             cv2.waitKey(0)
             cv2.destroyAllWindows()
+
+
+def mask2rle(img):
+    '''
+    img: numpy array, 1 - mask, 0 - background
+    Returns run length as string formated
+    '''
+    pixels = img.T.flatten()
+    pixels = np.concatenate([[0], pixels, [0]])
+    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
+    runs[1::2] -= runs[::2]
+    return ' '.join(str(x) for x in runs)
+
+
+def trans_anns(anns):
+    if len(anns) == 0:
+        return
+    sorted_anns = sorted(anns, key=(lambda x: x['area']), reverse=False)
+    list = []
+    index = 0
+    # 对每个注释进行处理
+    for ann in sorted_anns:
+        bool_array = ann['segmentation']
+        # 将boolean类型的数组转换为int类型
+        int_array = bool_array.astype(int)
+        # 转化为RLE格式
+        rle = mask2rle(int_array)
+        list.append({"index": index, "mask": rle})
+        index += 1
+    return list

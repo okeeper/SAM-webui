@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import os
 import uuid
+import cv2
 sys.path.append(str(Path(__file__).parent.parent))
 
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory,jsonify, session
@@ -101,6 +102,22 @@ def process_points():
         'output_image_path': output_image_path,
         "mask_image_path": mask_image_path
     })
+
+
+
+@app.route('/get_auto_masks', methods=['POST'])
+def get_auto_masks():
+    if not 'uploaded_image' in session:
+        session['uploaded_image'] = 'default.png'
+    # 处理图像
+    image_path = os.path.join(app.config['UPLOAD_FOLDER'], session['uploaded_image'])
+
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    res = mask_utils.get_auto_masks(image)
+    print(f">>>>>>{jsonify(res)}")
+
+    return jsonify(res)
 
 @app.route('/processed_image/<path:image_path>')
 def processed_image(image_path):
