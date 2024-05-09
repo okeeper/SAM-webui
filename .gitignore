@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+
+.idea
 __pycache__/
 *.py[cod]
 *$py.class
@@ -173,9 +175,6 @@ cython_debug/
 node_modules/
 
 # TypeScript compiled output
-*.js
-*.js.map
-*.d.ts
 
 # Temporary files
 *.tmp
